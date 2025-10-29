@@ -1,9 +1,8 @@
 package com.huahuacuna.service;
 
+import com.huahuacuna.exception.AuthenticationException;
 import com.huahuacuna.model.LoginRequest;
 import com.huahuacuna.model.LoginResponse;
-import com.huahuacuna.model.RegisterRequest;
-import com.huahuacuna.model.RegisterResponse;
 
 /**
  * Interfaz de servicio de autenticación.
@@ -20,6 +19,5 @@ public interface AuthService {
      * @throws AuthenticationException si las credenciales son inválidas
      */
     LoginResponse authenticate(LoginRequest loginRequest);
-    RegisterResponse register(RegisterRequest request);
 
 }

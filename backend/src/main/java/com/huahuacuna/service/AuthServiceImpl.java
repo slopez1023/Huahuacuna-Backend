@@ -1,7 +1,6 @@
 package com.huahuacuna.service;
 
 import com.huahuacuna.exception.AuthenticationException;
-import com.huahuacuna.exception.UserAlreadyExistsException;
 import com.huahuacuna.model.*;
 import com.huahuacuna.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -88,46 +87,6 @@ public class AuthServiceImpl implements AuthService {
                 .build();
     }
 
-    /**
-     * Registra un nuevo usuario en el sistema.
-     * <p>
-     * Antes de guardar el usuario, se valida que el correo no esté registrado
-     * previamente y se encripta la contraseña con el {@link PasswordEncoder}.
-     * </p>
-     *
-     * @param request objeto con los datos necesarios para el registro.
-     * @return un {@link RegisterResponse} con información del resultado del registro.
-     * @throws UserAlreadyExistsException si el correo electrónico ya está registrado.
-     */
-    @Override
-    public RegisterResponse register(RegisterRequest request) {
-        if (request == null || request.getEmail() == null || request.getPassword() == null) {
-            return RegisterResponse.error("Datos de registro incompletos");
-        }
-
-        if (userRepository.findByEmail(request.getEmail()).isPresent()) {
-            throw new UserAlreadyExistsException("El usuario con email " + request.getEmail() + " ya existe");
-        }
-
-        User newUser = User.builder()
-                .fullName(request.getFullName())
-                .email(request.getEmail())
-                .password(passwordEncoder.encode(request.getPassword()))
-                .telefono(request.getTelefono())
-                .role(request.getRole() != null ? request.getRole() : "USER")
-                .build();
-
-        // Guardar teléfono si se proporciona
-        if (request.getTelefono() != null) {
-            newUser.setTelefono(request.getTelefono());
-        }
-
-        User saved = userRepository.save(newUser);
-
-        logger.info("✅ Usuario registrado exitosamente: {}", saved.getEmail());
-
-        return RegisterResponse.success(saved);
-    }
 
     /**
      * Genera un token simulado para representar una sesión activa de usuario.
