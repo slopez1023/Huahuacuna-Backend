@@ -44,6 +44,7 @@ public class SecurityConfig {
                                 "/api/auth/login",
                                 "/api/auth/register",
                                 "/api/auth/forgot-password",
+                                "/api/auth/verify-token/**",    // ← LÍNEA AGREGADA
                                 "/api/auth/reset-password",
                                 "/h2-console/**"
                         ).permitAll()
