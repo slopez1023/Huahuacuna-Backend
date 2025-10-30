@@ -1,104 +1,96 @@
 package com.huahuacuna.service;
 
-import com.huahuacuna.exception.AuthenticationException;
-import com.huahuacuna.model.*;
+import com.huahuacuna.model.LoginRequest;
+import com.huahuacuna.model.LoginResponse;
+import com.huahuacuna.model.Role;
+import com.huahuacuna.model.User;
 import com.huahuacuna.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import java.util.UUID;
-
 /**
- * Implementación del servicio de autenticación para el sistema Huahuacuna.
- * <p>
- * Esta clase gestiona el proceso de inicio de sesión y registro de usuarios,
- * interactuando con la base de datos y aplicando las reglas de seguridad necesarias.
- * </p>
- *
- * <p>
- * Utiliza {@link UserRepository} para acceder a los datos de usuario,
- * y {@link PasswordEncoder} para el manejo seguro de contraseñas.
- * </p>
+ * Implementación del servicio de autenticación.
  */
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class AuthServiceImpl implements AuthService {
 
-    /** Logger para registrar eventos y errores relacionados con la autenticación. */
-    private static final Logger logger = LoggerFactory.getLogger(AuthServiceImpl.class);
-
-    /** Repositorio de usuarios utilizado para realizar operaciones en la base de datos. */
     private final UserRepository userRepository;
-
-    /** Codificador de contraseñas utilizado para validar y encriptar contraseñas. */
     private final PasswordEncoder passwordEncoder;
 
     /**
-     * Autentica a un usuario en el sistema a partir de sus credenciales.
-     * <p>
-     * Verifica la existencia del usuario en la base de datos y compara la contraseña
-     * proporcionada con la almacenada. Si las credenciales son válidas, genera un token
-     * de sesión simulado.
-     * </p>
+     * Autentica un usuario con email y contraseña.
      *
-     * @param loginRequest objeto que contiene el correo y contraseña del usuario.
-     * @return un {@link LoginResponse} con el resultado del proceso de autenticación.
-     * @throws AuthenticationException si las credenciales son incorrectas o los datos son inválidos.
+     * @param loginRequest credenciales del usuario
+     * @return respuesta con token y datos del usuario
+     * @throws RuntimeException si las credenciales son inválidas
      */
     @Override
-    public LoginResponse authenticate(LoginRequest loginRequest) {
-        logger.info("Intento de login para usuario: {}", loginRequest.getEmail());
-
-        if (loginRequest == null || loginRequest.getEmail() == null || loginRequest.getPassword() == null) {
-            logger.warn("Solicitud de login inválida: datos nulos");
-            throw new AuthenticationException("Solicitud de login inválida");
-        }
-
-        // Buscar usuario en la base de datos
+    public LoginResponse login(LoginRequest loginRequest) {
+        // Buscar usuario por email
         User user = userRepository.findByEmail(loginRequest.getEmail())
-                .orElseThrow(() -> {
-                    logger.warn("Usuario no encontrado: {}", loginRequest.getEmail());
-                    return new AuthenticationException("Correo electrónico o contraseña incorrectos");
-                });
+                .orElseThrow(() -> new RuntimeException("Credenciales inválidas"));
 
-        // Verificar contraseña usando BCrypt
+        // Verificar contraseña
         if (!passwordEncoder.matches(loginRequest.getPassword(), user.getPassword())) {
-            logger.warn("Contraseña incorrecta para usuario: {}", loginRequest.getEmail());
-            throw new AuthenticationException("Correo electrónico o contraseña incorrectos");
+            throw new RuntimeException("Credenciales inválidas");
         }
 
-        logger.info("✅ Login exitoso para usuario: {}", loginRequest.getEmail());
+        // Verificar que la cuenta esté activa
+        if (!user.getIsActive()) {
+            throw new RuntimeException("Cuenta desactivada. Contacta al administrador.");
+        }
 
-        // Generar token simulado
+        // Generar token (por ahora un token ficticio)
         String token = generateToken(user);
 
+        log.info("Usuario autenticado exitosamente: {}", user.getEmail());
+
+        // Construir respuesta - SIN el método success()
         return LoginResponse.builder()
-                .success(true)
-                .message("Inicio de sesión exitoso")
                 .token(token)
-                .user(LoginResponse.UserInfo.builder()
-                        .id(user.getId())
-                        .email(user.getEmail())
-                        .name(user.getFullName())
-                        .build())
+                .userId(user.getId())
+                .email(user.getEmail())
+                .fullName(user.getFullName())
+                .role(user.getRole())
+                // tokenType ya tiene valor por defecto "Bearer" en LoginResponse
                 .build();
     }
 
-
     /**
-     * Genera un token simulado para representar una sesión activa de usuario.
-     * <p>
-     * En una implementación real, este método debería generar un JWT u otro
-     * mecanismo de autenticación segura.
-     * </p>
-     *
-     * @param user usuario autenticado.
-     * @return un token de sesión en formato de cadena.
+     * Genera un token de autenticación.
+     * TODO: Implementar JWT real en el futuro
      */
     private String generateToken(User user) {
-        return "bearer_" + UUID.randomUUID().toString();
+        // Token temporal para desarrollo
+        // En producción, usar JWT con biblioteca como jjwt
+        return "Bearer_" + user.getId() + "_" + System.currentTimeMillis();
+    }
+
+    /**
+     * Obtiene un usuario por su email.
+     *
+     * @param email el email del usuario
+     * @return el usuario encontrado
+     * @throws RuntimeException si no existe
+     */
+    @Override
+    public User getUserByEmail(String email) {
+        return userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+    }
+
+    /**
+     * Verifica si un email ya está registrado.
+     *
+     * @param email el email a verificar
+     * @return true si el email existe
+     */
+    @Override
+    public boolean emailExists(String email) {
+        return userRepository.existsByEmail(email);
     }
 }
