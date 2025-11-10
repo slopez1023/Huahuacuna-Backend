@@ -2,12 +2,21 @@ package com.huahuacuna.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
+/**
+ * Configuración de seguridad de la aplicación.
+ * <p>
+ * Define las reglas de autorización, encriptación de contraseñas
+ * y configuración de acceso a endpoints según roles.
+ * </p>
+ */
 @Configuration
+@EnableMethodSecurity(prePostEnabled = true)
 public class SecurityConfig {
 
     /**
@@ -20,7 +29,7 @@ public class SecurityConfig {
 
     /**
      * Configuración del filtro de seguridad HTTP.
-     * Permite el acceso libre a los endpoints de autenticación y la consola H2.
+     * Define qué endpoints requieren autenticación y qué roles pueden acceder.
      */
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -28,17 +37,36 @@ public class SecurityConfig {
                 // Desactiva CSRF para facilitar pruebas con Postman
                 .csrf(csrf -> csrf.disable())
 
-                // Configura qué rutas se pueden acceder sin autenticación
+                // Configura las reglas de autorización
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/auth/**", "/h2-console/**").permitAll() // Permitir login/register/H2
-                        .anyRequest().permitAll() // Permitir todo por ahora (puedes ajustar después)
+                        // Endpoints públicos - no requieren autenticación
+                        .requestMatchers(
+                                "/api/auth/login",
+                                "/api/auth/register",
+                                "/api/auth/forgot-password",
+                                "/api/auth/verify-token/**",    // ← LÍNEA AGREGADA
+                                "/api/auth/reset-password",
+                                "/h2-console/**"
+                        ).permitAll()
+
+                        // Endpoints solo para ADMIN
+                        .requestMatchers("/api/admin/**").hasRole("ADMIN")
+
+                        // Endpoints para VOLUNTARIOS
+                        .requestMatchers("/api/voluntario/**").hasAnyRole("ADMIN", "VOLUNTARIO")
+
+                        // Endpoints para APADRINADOS
+                        .requestMatchers("/api/apadrinado/**").hasAnyRole("ADMIN", "APADRINADO")
+
+                        // Cualquier otra petición requiere autenticación
+                        .anyRequest().authenticated()
                 )
 
                 // Desactiva login básico y logout predeterminados
                 .formLogin(form -> form.disable())
                 .httpBasic(basic -> basic.disable())
 
-                // Permite que se muestre la consola H2
+                // Permite que se muestre la consola H2 en frames
                 .headers(headers -> headers.frameOptions(frame -> frame.disable()));
 
         return http.build();

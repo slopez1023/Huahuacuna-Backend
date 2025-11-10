@@ -22,7 +22,8 @@ import java.time.LocalDateTime;
  */
 @Entity
 @Table(name = "users", indexes = {
-        @Index(name = "idx_email", columnList = "email", unique = true)
+        @Index(name = "idx_email", columnList = "email", unique = true),
+        @Index(name = "idx_reset_token", columnList = "reset_password_token")
 })
 @Data
 @NoArgsConstructor
@@ -64,16 +65,40 @@ public class User {
     private String password;
 
     /**
-     * Rol asignado al usuario dentro del sistema (por ejemplo, "USER" o "ADMIN").
+     * Rol asignado al usuario dentro del sistema.
+     * Se almacena como String pero se maneja con el enum Role.
      */
+    @Enumerated(EnumType.STRING)
     @Column(name = "role", nullable = false, length = 20)
-    private String role;
+    private Role role;
 
     /**
      * Número de teléfono del usuario (opcional).
      */
     @Column(name = "telefono", length = 20)
     private String telefono;
+
+    /**
+     * Token para recuperación de contraseña.
+     * Se genera cuando el usuario solicita restablecer su contraseña.
+     */
+    @Column(name = "reset_password_token", length = 100)
+    private String resetPasswordToken;
+
+    /**
+     * Fecha de expiración del token de recuperación de contraseña.
+     * El token solo es válido hasta esta fecha.
+     */
+    @Column(name = "reset_password_expires")
+    private LocalDateTime resetPasswordExpires;
+
+    /**
+     * Indica si la cuenta del usuario está activa.
+     * Por defecto es true, pero puede desactivarse por el administrador.
+     */
+    @Column(name = "is_active", nullable = false)
+    @Builder.Default
+    private Boolean isActive = true;
 
     /**
      * Fecha y hora en la que se creó el registro del usuario.
@@ -92,7 +117,7 @@ public class User {
     /**
      * Método de ciclo de vida ejecutado automáticamente antes de insertar un nuevo usuario.
      * <p>
-     * Establece las fechas de creación y actualización, y asigna el rol "USER" por defecto
+     * Establece las fechas de creación y actualización, y asigna el rol "APADRINADO" por defecto
      * si no se ha especificado uno.
      * </p>
      */
@@ -101,7 +126,10 @@ public class User {
         this.createdAt = LocalDateTime.now();
         this.updatedAt = LocalDateTime.now();
         if (this.role == null) {
-            this.role = "USER";
+            this.role = Role.APADRINADO;
+        }
+        if (this.isActive == null) {
+            this.isActive = true;
         }
     }
 
@@ -118,21 +146,38 @@ public class User {
 
     /**
      * Constructor personalizado que permite crear un usuario con los datos principales.
-     * <p>
-     * Si el rol no se proporciona, se asigna automáticamente el valor por defecto "USER".
-     * </p>
      *
      * @param fullName nombre completo del usuario.
      * @param email    correo electrónico del usuario.
      * @param password contraseña del usuario.
-     * @param role     rol asignado (puede ser nulo).
+     * @param role     rol asignado.
      * @param telefono número de teléfono (opcional).
      */
-    public User(String fullName, String email, String password, String role, String telefono) {
+    public User(String fullName, String email, String password, Role role, String telefono) {
         this.fullName = fullName;
         this.email = email;
         this.password = password;
-        this.role = role != null ? role : "USER";
+        this.role = role != null ? role : Role.APADRINADO;
         this.telefono = telefono;
+        this.isActive = true;
+    }
+
+    /**
+     * Verifica si el token de recuperación de contraseña es válido.
+     *
+     * @return true si el token existe y no ha expirado
+     */
+    public boolean isResetTokenValid() {
+        return resetPasswordToken != null
+                && resetPasswordExpires != null
+                && resetPasswordExpires.isAfter(LocalDateTime.now());
+    }
+
+    /**
+     * Limpia el token de recuperación de contraseña.
+     */
+    public void clearResetToken() {
+        this.resetPasswordToken = null;
+        this.resetPasswordExpires = null;
     }
 }

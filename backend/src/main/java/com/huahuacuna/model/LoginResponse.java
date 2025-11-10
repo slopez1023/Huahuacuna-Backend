@@ -6,8 +6,8 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 /**
- * DTO para responder con información de autenticación exitosa.
- * Utiliza el patrón Builder para facilitar la creación.
+ * DTO que representa la respuesta exitosa de un login.
+ * Contiene el token JWT y la información básica del usuario.
  */
 @Data
 @NoArgsConstructor
@@ -15,21 +15,34 @@ import lombok.NoArgsConstructor;
 @Builder
 public class LoginResponse {
 
-    private boolean success;
-    private String message;
+    /**
+     * Token JWT para autenticación en peticiones subsiguientes.
+     */
     private String token;
-    private UserInfo user;
 
     /**
-     * DTO anidado con información del usuario autenticado.
+     * ID del usuario autenticado.
      */
-    @Data
-    @NoArgsConstructor
-    @AllArgsConstructor
-    @Builder
-    public static class UserInfo {
-        private Long id;
-        private String email;
-        private String name;
-    }
+    private Long userId;
+
+    /**
+     * Email del usuario autenticado.
+     */
+    private String email;
+
+    /**
+     * Nombre completo del usuario.
+     */
+    private String fullName;
+
+    /**
+     * Rol del usuario en el sistema.
+     */
+    private Role role;
+
+    /**
+     * Tipo del token (generalmente "Bearer").
+     */
+    @Builder.Default
+    private String tokenType = "Bearer";
 }
