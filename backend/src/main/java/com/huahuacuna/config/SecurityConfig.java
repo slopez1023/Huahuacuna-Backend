@@ -44,10 +44,23 @@ public class SecurityConfig {
                                 "/api/auth/login",
                                 "/api/auth/register",
                                 "/api/auth/forgot-password",
-                                "/api/auth/verify-token/**",    // ← LÍNEA AGREGADA
+                                "/api/auth/verify-token/**",
                                 "/api/auth/reset-password",
                                 "/h2-console/**"
                         ).permitAll()
+
+                        // ⭐ ENDPOINTS DE DONACIONES - NUEVOS ⭐
+                        .requestMatchers(
+                                "/api/donations",              // POST - Crear donación (público)
+                                "/api/donations/export"        // GET - Exportar CSV (público)
+                        ).permitAll()
+
+                        // Endpoints de donaciones solo para ADMIN
+                        .requestMatchers(
+                                "/api/donations/reports",      // GET - Ver reportes
+                                "/api/donations/{id}",         // GET - Ver donación específica
+                                "/api/donations/{id}/status"   // PATCH - Actualizar estado
+                        ).hasRole("ADMIN")
 
                         // Endpoints solo para ADMIN
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
