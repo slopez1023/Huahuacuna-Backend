@@ -7,7 +7,7 @@ import lombok.Getter;
  * <p>
  * - ADMIN: Administrador con acceso total al sistema
  * - VOLUNTARIO: Usuario voluntario que ha solicitado participar
- * - APADRINADO: Usuario que puede ser apadrinado/patrocinado
+ * - PADRINO: Usuario que puede apadrinar/patrocinar
  * </p>
  */
 @Getter
@@ -23,9 +23,9 @@ public enum Role {
     VOLUNTARIO("ROLE_VOLUNTARIO"),
 
     /**
-     * Usuario apadrinado
+     * Usuario padrino
      */
-    APADRINADO("ROLE_APADRINADO");
+    PADRINO("ROLE_PADRINO");
 
     /**
      * -- GETTER --
@@ -44,7 +44,7 @@ public enum Role {
      */
     public static Role fromString(String role) {
         if (role == null) {
-            return APADRINADO; // Rol por defecto
+            return PADRINO; // Rol por defecto
         }
 
         // Remover el prefijo ROLE_ si existe
@@ -53,7 +53,7 @@ public enum Role {
         try {
             return Role.valueOf(cleanRole.toUpperCase());
         } catch (IllegalArgumentException e) {
-            return APADRINADO; // Rol por defecto si no se encuentra
+            return PADRINO; // Rol por defecto si no se encuentra
         }
     }
 }

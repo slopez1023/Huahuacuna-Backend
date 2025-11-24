@@ -63,19 +63,19 @@ public class AdminController {
     }
 
     /**
-     * Obtiene todas las solicitudes de apadrinados.
+     * Obtiene todas las solicitudes de padrinos.
      *
-     * @return lista de usuarios con rol APADRINADO
+     * @return lista de usuarios con rol PADRINO
      */
-    @GetMapping("/apadrinados")
-    public ResponseEntity<?> getApadrinados() {
-        List<User> apadrinados = userRepository.findByRole(Role.APADRINADO);
-        log.info("Admin consultando apadrinados. Total: {}", apadrinados.size());
+    @GetMapping("/padrinos")
+    public ResponseEntity<?> getPadrinos() {
+        List<User> padrinos = userRepository.findByRole(Role.PADRINO);
+        log.info("Admin consultando padrinos. Total: {}", padrinos.size());
 
         return ResponseEntity.ok(Map.of(
                 "success", true,
-                "total", apadrinados.size(),
-                "apadrinados", apadrinados
+                "total", padrinos.size(),
+                "padrinos", padrinos
         ));
     }
 
@@ -137,7 +137,7 @@ public class AdminController {
         long totalUsers = userRepository.count();
         long totalAdmins = userRepository.findByRole(Role.ADMIN).size();
         long totalVoluntarios = userRepository.findByRole(Role.VOLUNTARIO).size();
-        long totalApadrinados = userRepository.findByRole(Role.APADRINADO).size();
+        long totalPadrinos = userRepository.findByRole(Role.PADRINO).size();
 
         return ResponseEntity.ok(Map.of(
                 "success", true,
@@ -145,7 +145,7 @@ public class AdminController {
                         "totalUsers", totalUsers,
                         "admins", totalAdmins,
                         "voluntarios", totalVoluntarios,
-                        "apadrinados", totalApadrinados
+                        "padrinos", totalPadrinos
                 )
         ));
     }

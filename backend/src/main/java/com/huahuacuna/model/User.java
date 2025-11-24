@@ -114,10 +114,11 @@ public class User {
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
+
     /**
      * Método de ciclo de vida ejecutado automáticamente antes de insertar un nuevo usuario.
      * <p>
-     * Establece las fechas de creación y actualización, y asigna el rol "APADRINADO" por defecto
+     * Establece las fechas de creación y actualización, y asigna el rol "PADRINO" por defecto
      * si no se ha especificado uno.
      * </p>
      */
@@ -126,7 +127,7 @@ public class User {
         this.createdAt = LocalDateTime.now();
         this.updatedAt = LocalDateTime.now();
         if (this.role == null) {
-            this.role = Role.APADRINADO;
+            this.role = Role.PADRINO;
         }
         if (this.isActive == null) {
             this.isActive = true;
@@ -157,7 +158,7 @@ public class User {
         this.fullName = fullName;
         this.email = email;
         this.password = password;
-        this.role = role != null ? role : Role.APADRINADO;
+        this.role = role != null ? role : Role.PADRINO;
         this.telefono = telefono;
         this.isActive = true;
     }

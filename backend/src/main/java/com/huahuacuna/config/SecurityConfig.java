@@ -1,72 +1,133 @@
 package com.huahuacuna.config;
 
+import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
-import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.web.cors.CorsConfiguration;
+
+import java.util.List;
 
 /**
  * Configuración de seguridad de la aplicación.
  * <p>
- * Define las reglas de autorización, encriptación de contraseñas
- * y configuración de acceso a endpoints según roles.
+ * Define las reglas de autorización, encriptación de contraseñas,
+ * validación JWT y configuración de acceso a endpoints según roles.
  * </p>
+ *
+ * @author Fundación Huahuacuna
+ * @version 2.0 (con JWT)
  */
 @Configuration
+@EnableWebSecurity
 @EnableMethodSecurity(prePostEnabled = true)
+@RequiredArgsConstructor
 public class SecurityConfig {
 
-    /**
-     * Bean para encriptar contraseñas con BCrypt.
-     */
+    private final JwtAuthenticationFilter jwtAuthenticationFilter;
+
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }
 
-    /**
-     * Configuración del filtro de seguridad HTTP.
-     * Define qué endpoints requieren autenticación y qué roles pueden acceder.
-     */
+    @Bean
+    public AuthenticationManager authenticationManager(
+            AuthenticationConfiguration authenticationConfiguration) throws Exception {
+        return authenticationConfiguration.getAuthenticationManager();
+    }
+
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-                // Desactiva CSRF para facilitar pruebas con Postman
                 .csrf(csrf -> csrf.disable())
 
-                // Configura las reglas de autorización
+                // Configuración CORS explícita
+                .cors(cors -> cors.configurationSource(request -> {
+                    CorsConfiguration config = new CorsConfiguration();
+
+                    // ✅ CAMBIO CRÍTICO: Usar setAllowedOriginPatterns en lugar de setAllowedOrigins
+                    config.setAllowedOriginPatterns(List.of(
+                            "http://localhost:3000",
+                            "http://127.0.0.1:3000",
+                            "http://localhost:3001",
+                            "http://127.0.0.1:3001"
+                    ));
+
+                    config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
+                    config.setAllowedHeaders(List.of("*"));
+                    config.setAllowCredentials(true);
+                    config.setMaxAge(3600L);
+                    return config;
+                }))
+
+                .sessionManagement(session ->
+                        session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+                )
+
                 .authorizeHttpRequests(auth -> auth
-                        // Endpoints públicos - no requieren autenticación
+                        // ✅ CRÍTICO: Permitir OPTIONS sin autenticación (CORS preflight)
+                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+
+                        // Endpoints públicos de autenticación
                         .requestMatchers(
                                 "/api/auth/login",
                                 "/api/auth/register",
                                 "/api/auth/forgot-password",
-                                "/api/auth/verify-token/**",    // ← LÍNEA AGREGADA
-                                "/api/auth/reset-password",
-                                "/h2-console/**"
+                                "/api/auth/verify-token/**",
+                                "/api/auth/reset-password"
                         ).permitAll()
 
-                        // Endpoints solo para ADMIN
+                        // ⭐ ENDPOINTS DE DONACIONES - PÚBLICOS ⭐
+                        .requestMatchers(HttpMethod.POST, "/api/donations").permitAll()     // ✅ Crear donación
+                        .requestMatchers(HttpMethod.GET, "/api/donations/export").permitAll() // ✅ Exportar
+
+                        // Endpoints de donaciones solo para ADMIN
+                        .requestMatchers(HttpMethod.GET, "/api/donations/reports").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/api/donations/{id}").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.PATCH, "/api/donations/{id}/status").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/api/donations").hasRole("ADMIN")
+
+                        // Formularios públicos
+                        .requestMatchers(
+                                "/api/applications/volunteer",
+                                "/api/applications/sponsor"
+                        ).permitAll()
+
+                        // Consola H2 (solo desarrollo)
+                        .requestMatchers("/h2-console/**").permitAll()
+
+                        // Endpoints protegidos por rol ADMIN
+                        .requestMatchers("/api/users/**").hasRole("ADMIN")
+                        .requestMatchers("/api/applications", "/api/applications/**").hasRole("ADMIN")
+                        .requestMatchers("/api/notifications/**").hasRole("ADMIN")
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
 
-                        // Endpoints para VOLUNTARIOS
+                        // Endpoints por roles específicos
                         .requestMatchers("/api/voluntario/**").hasAnyRole("ADMIN", "VOLUNTARIO")
-
-                        // Endpoints para APADRINADOS
-                        .requestMatchers("/api/apadrinado/**").hasAnyRole("ADMIN", "APADRINADO")
+                        .requestMatchers("/api/padrino/**").hasAnyRole("ADMIN", "APADRINADO")
 
                         // Cualquier otra petición requiere autenticación
                         .anyRequest().authenticated()
                 )
 
-                // Desactiva login básico y logout predeterminados
+                // Agregar filtro JWT antes del filtro de autenticación
+                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+
                 .formLogin(form -> form.disable())
                 .httpBasic(basic -> basic.disable())
 
-                // Permite que se muestre la consola H2 en frames
+                // Permitir H2 console en frames
                 .headers(headers -> headers.frameOptions(frame -> frame.disable()));
 
         return http.build();

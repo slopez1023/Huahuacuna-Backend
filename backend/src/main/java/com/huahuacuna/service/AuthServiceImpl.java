@@ -2,7 +2,6 @@ package com.huahuacuna.service;
 
 import com.huahuacuna.model.LoginRequest;
 import com.huahuacuna.model.LoginResponse;
-import com.huahuacuna.model.Role;
 import com.huahuacuna.model.User;
 import com.huahuacuna.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -20,12 +19,13 @@ public class AuthServiceImpl implements AuthService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final JwtService jwtService; // ✅ Inyección del JwtService
 
     /**
      * Autentica un usuario con email y contraseña.
      *
      * @param loginRequest credenciales del usuario
-     * @return respuesta con token y datos del usuario
+     * @return respuesta con token JWT y datos del usuario
      * @throws RuntimeException si las credenciales son inválidas
      */
     @Override
@@ -44,30 +44,20 @@ public class AuthServiceImpl implements AuthService {
             throw new RuntimeException("Cuenta desactivada. Contacta al administrador.");
         }
 
-        // Generar token (por ahora un token ficticio)
-        String token = generateToken(user);
+        // ✅ Generar token JWT real usando JwtService
+        String token = jwtService.generateToken(user);
 
         log.info("Usuario autenticado exitosamente: {}", user.getEmail());
 
-        // Construir respuesta - SIN el método success()
+        // Construir respuesta
         return LoginResponse.builder()
                 .token(token)
                 .userId(user.getId())
                 .email(user.getEmail())
                 .fullName(user.getFullName())
                 .role(user.getRole())
-                // tokenType ya tiene valor por defecto "Bearer" en LoginResponse
+                .tokenType("Bearer") // Explícito para claridad
                 .build();
-    }
-
-    /**
-     * Genera un token de autenticación.
-     * TODO: Implementar JWT real en el futuro
-     */
-    private String generateToken(User user) {
-        // Token temporal para desarrollo
-        // En producción, usar JWT con biblioteca como jjwt
-        return "Bearer_" + user.getId() + "_" + System.currentTimeMillis();
     }
 
     /**
