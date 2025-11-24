@@ -2,10 +2,9 @@ package com.huahuacuna.controller;
 
 import com.huahuacuna.model.Donation;
 import com.huahuacuna.model.DonationRequest;
-import com.huahuacuna.model.dto.DonationStatsDTO;
+import com.huahuacuna.model.DonationStatsDTO;
 import com.huahuacuna.service.DonationService;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -21,8 +20,7 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/donations")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "*")  // Se mantendrá por si acaso, pero WebConfig tiene prioridad
-@Slf4j
+@CrossOrigin(origins = "*")
 public class DonationController {
 
     private final DonationService donationService;
@@ -30,30 +28,15 @@ public class DonationController {
     @PostMapping
     public ResponseEntity<?> createDonation(@RequestBody DonationRequest request) {
         try {
-            log.info("📨 Recibiendo solicitud de donación de: {}", request.getFullName());
-            log.debug("📋 Request completo: {}", request);
-
             Donation donation = donationService.createDonation(request);
 
             Map<String, Object> response = new HashMap<>();
             response.put("success", true);
-            response.put("message", "Donación registrada exitosamente");
             response.put("donation", donation);
 
-            log.info("✅ Donación procesada correctamente con ID: {}", donation.getId());
             return ResponseEntity.ok(response);
-
-        } catch (IllegalArgumentException e) {
-            log.warn("⚠️ Validación fallida: {}", e.getMessage());
-            Map<String, Object> error = new HashMap<>();
-            error.put("success", false);
-            error.put("error", e.getMessage());
-            return ResponseEntity.badRequest().body(error);
-
         } catch (Exception e) {
-            log.error("❌ Error al procesar donación: {}", e.getMessage(), e);
             Map<String, Object> error = new HashMap<>();
-            error.put("success", false);
             error.put("error", "Error al procesar la donación: " + e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
         }
@@ -74,7 +57,6 @@ public class DonationController {
 
             return ResponseEntity.ok(response);
         } catch (Exception e) {
-            log.error("❌ Error al obtener donaciones: {}", e.getMessage(), e);
             Map<String, Object> error = new HashMap<>();
             error.put("error", "Error al obtener las donaciones: " + e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
@@ -90,7 +72,6 @@ public class DonationController {
             DonationStatsDTO stats = donationService.getDonationStats(startDate, endDate);
             return ResponseEntity.ok(stats);
         } catch (Exception e) {
-            log.error("❌ Error al generar reporte: {}", e.getMessage(), e);
             Map<String, Object> error = new HashMap<>();
             error.put("error", "Error al generar el reporte: " + e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
@@ -117,7 +98,6 @@ public class DonationController {
 
             return ResponseEntity.badRequest().body("Formato no soportado");
         } catch (Exception e) {
-            log.error("❌ Error al exportar: {}", e.getMessage(), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body("Error al exportar: " + e.getMessage());
         }
@@ -138,7 +118,6 @@ public class DonationController {
 
             return ResponseEntity.ok(response);
         } catch (Exception e) {
-            log.error("❌ Error al actualizar estado: {}", e.getMessage(), e);
             Map<String, Object> error = new HashMap<>();
             error.put("error", "Error al actualizar el estado: " + e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
