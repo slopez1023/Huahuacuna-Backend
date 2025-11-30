@@ -2,7 +2,7 @@ package com.huahuacuna.controller;
 
 import com.huahuacuna.model.Donation;
 import com.huahuacuna.model.DonationRequest;
-import com.huahuacuna.model.DonationStatsDTO;
+import com.huahuacuna.model.dto.DonationStatsDTO;
 import com.huahuacuna.service.DonationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;

@@ -18,21 +18,12 @@ import org.springframework.web.cors.CorsConfiguration;
 
 import java.util.List;
 
-/**
- * Configuración de seguridad de la aplicación.
- * <p>
- * Define las reglas de autorización, encriptación de contraseñas,
- * validación JWT y configuración de acceso a endpoints según roles.
- * </p>
- *
- * @author Fundación Huahuacuna
- * @version 2.0 (con JWT)
- */
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity(prePostEnabled = true)
 @RequiredArgsConstructor
 public class SecurityConfig {
+
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
 
@@ -115,7 +106,25 @@ public class SecurityConfig {
 
                         // Endpoints por roles específicos
                         .requestMatchers("/api/voluntario/**").hasAnyRole("ADMIN", "VOLUNTARIO")
-                        .requestMatchers("/api/padrino/**").hasAnyRole("ADMIN", "APADRINADO")
+                        .requestMatchers("/api/padrinos/**").hasAnyRole("ADMIN", "PADRINO")
+
+                        // ========== CHAT DEL ADMINISTRADOR ==========
+                        .requestMatchers("/api/admin/chat/**").hasRole("ADMIN")
+
+                        // ⭐ NUEVOS MÓDULOS INTEGRADOS ⭐
+
+                        // 1. NIÑOS (Privacidad protegida)
+                        // Ver lista y detalles: Solo ADMIN y PADRINOS (Usamos "APADRINADO" para coincidir con tu BD)
+                        .requestMatchers(HttpMethod.GET, "/api/children/**").hasAnyRole("ADMIN", "APADRINADO")
+                        // Crear, Editar, Eliminar: Solo ADMIN
+                        .requestMatchers("/api/children/**").hasRole("ADMIN")
+
+                        // 2. EVENTOS Y PROYECTOS (Públicos para ver)
+                        .requestMatchers(HttpMethod.GET, "/api/events/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/projects/**").permitAll()
+                        // Gestión de Eventos/Proyectos: Solo ADMIN
+                        .requestMatchers("/api/events/**").hasRole("ADMIN")
+                        .requestMatchers("/api/projects/**").hasRole("ADMIN")
 
                         // Cualquier otra petición requiere autenticación
                         .anyRequest().authenticated()
