@@ -14,8 +14,13 @@ import java.util.stream.Collectors;
 /**
  * Implementación del servicio de padrinos.
  *
+ * CORRECCIÓN v2.0:
+ * - Removido el método addLogEntry para padrinos
+ * - El padrino solo puede LEER la bitácora
+ * - Agregados métodos addLogEntryByAdmin y getLogEntriesAdmin para administradores
+ *
  * @author Fundación Huahuacuna
- * @version 1.0
+ * @version 2.0 - Solo lectura de bitácora para padrinos
  */
 @Service
 @RequiredArgsConstructor
@@ -156,12 +161,12 @@ public class GodparentServiceImpl implements GodparentService {
         return sponsorshipRepository.existsByGodparentIdAndStatus(godparentId, SponsorshipStatus.ACTIVE);
     }
 
-    // ========== BITÁCORA ==========
+    // ========== BITÁCORA (SOLO LECTURA PARA PADRINO) ==========
 
     @Override
     @Transactional(readOnly = true)
     public List<LogEntryDTO> getLogEntries(Long sponsorshipId, Long godparentId) {
-        log.info("Obteniendo bitácora del apadrinamiento: {}", sponsorshipId);
+        log.info("Obteniendo bitácora del apadrinamiento: {} para padrino: {}", sponsorshipId, godparentId);
 
         // Validar que el apadrinamiento pertenece al padrino
         validateSponsorshipOwnership(sponsorshipId, godparentId);
@@ -172,26 +177,62 @@ public class GodparentServiceImpl implements GodparentService {
                 .collect(Collectors.toList());
     }
 
+    /**
+     * ❌ REMOVIDO: addLogEntry para padrinos
+     *
+     * Este método ha sido ELIMINADO porque el padrino NO debe poder
+     * agregar entradas a la bitácora. Esta funcionalidad es EXCLUSIVA
+     * del administrador.
+     *
+     * El método addLogEntryByAdmin() debe usarse en su lugar desde el AdminController.
+     */
+    // @Override
+    // public LogEntryDTO addLogEntry(Long sponsorshipId, Long godparentId, String title, String content) {
+    //     // REMOVIDO - Solo el admin puede agregar entradas
+    // }
+
+    // ========== BITÁCORA (MÉTODOS PARA ADMIN) ==========
+
     @Override
-    public LogEntryDTO addLogEntry(Long sponsorshipId, Long godparentId, String title, String content) {
-        log.info("Agregando entrada a bitácora del apadrinamiento: {}", sponsorshipId);
+    public LogEntryDTO addLogEntryByAdmin(Long sponsorshipId, String title, String content) {
+        log.info("ADMIN agregando entrada a bitácora del apadrinamiento: {}", sponsorshipId);
 
-        // Validar que el apadrinamiento pertenece al padrino
-        Sponsorship sponsorship = validateSponsorshipOwnership(sponsorshipId, godparentId);
+        // Obtener el apadrinamiento (sin validar pertenencia a padrino)
+        Sponsorship sponsorship = sponsorshipRepository.findById(sponsorshipId)
+                .orElseThrow(() -> new RuntimeException("Apadrinamiento no encontrado"));
 
+        // Crear la entrada de bitácora
         LogEntry entry = LogEntry.builder()
                 .sponsorship(sponsorship)
                 .title(title)
                 .content(content)
                 .entryType(LogEntry.LogEntryType.GENERAL)
-                .registeredBy(LogEntry.RegisteredBy.GODPARENT)
-                .createdByUserId(godparentId)
+                .registeredBy(LogEntry.RegisteredBy.ADMIN) // Registrado por ADMIN
+                .createdByUserId(null) // No asociamos a un usuario específico
                 .build();
 
         entry = logEntryRepository.save(entry);
-        log.info("Entrada de bitácora creada: {}", entry.getId());
+        log.info("Entrada de bitácora creada por ADMIN: {}", entry.getId());
+
+
 
         return LogEntryDTO.fromEntity(entry);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<LogEntryDTO> getLogEntriesAdmin(Long sponsorshipId) {
+        log.info("ADMIN obteniendo bitácora del apadrinamiento: {}", sponsorshipId);
+
+        // Validar que el apadrinamiento existe
+        if (!sponsorshipRepository.existsById(sponsorshipId)) {
+            throw new RuntimeException("Apadrinamiento no encontrado");
+        }
+
+        return logEntryRepository.findBySponsorshipIdOrderByCreatedAtDesc(sponsorshipId)
+                .stream()
+                .map(LogEntryDTO::fromEntity)
+                .collect(Collectors.toList());
     }
 
     // ========== CHAT ==========
@@ -279,5 +320,20 @@ public class GodparentServiceImpl implements GodparentService {
         }
 
         return sponsorship;
+    }
+    @Override
+    @Transactional(readOnly = true)
+    public List<SponsorshipSummaryDTO> getAllActiveSponsorshipsForAdmin() {
+        log.info("ADMIN obteniendo todos los apadrinamientos activos");
+
+        List<Sponsorship> sponsorships = sponsorshipRepository.findByStatus(SponsorshipStatus.ACTIVE);
+
+        return sponsorships.stream()
+                .map(sponsorship -> {
+                    // Contar entradas de bitácora para cada apadrinamiento
+                    Long entriesCount = logEntryRepository.countBySponsorshipId(sponsorship.getId());
+                    return SponsorshipSummaryDTO.fromEntity(sponsorship, entriesCount);
+                })
+                .collect(Collectors.toList());
     }
 }

@@ -114,10 +114,27 @@ public class SecurityConfig {
                         // ⭐ NUEVOS MÓDULOS INTEGRADOS ⭐
 
                         // 1. NIÑOS (Privacidad protegida)
-                        // Ver lista y detalles: Solo ADMIN y PADRINOS (Usamos "APADRINADO" para coincidir con tu BD)
-                        .requestMatchers(HttpMethod.GET, "/api/children/**").hasAnyRole("ADMIN", "APADRINADO")
-                        // Crear, Editar, Eliminar: Solo ADMIN
-                        .requestMatchers("/api/children/**").hasRole("ADMIN")
+                        // ⭐⭐⭐ CORRECCIÓN IMPORTANTE ⭐⭐⭐
+                        // El orden importa: las reglas más específicas deben ir PRIMERO
+
+                        // GET /api/children/available - Público o para padrinos
+                        .requestMatchers(HttpMethod.GET, "/api/children/available").hasAnyRole("ADMIN", "PADRINO")
+
+                        // Ver lista y detalles individuales: ADMIN y PADRINO
+                        .requestMatchers(HttpMethod.GET, "/api/children/**").hasAnyRole("ADMIN", "PADRINO")
+                        .requestMatchers(HttpMethod.GET, "/api/children").hasAnyRole("ADMIN", "PADRINO")
+
+                        // Crear niños: Solo ADMIN
+                        .requestMatchers(HttpMethod.POST, "/api/children").hasRole("ADMIN")
+
+                        // Actualizar niños: Solo ADMIN
+                        .requestMatchers(HttpMethod.PUT, "/api/children/**").hasRole("ADMIN")
+
+                        // Inhabilitar niños: Solo ADMIN
+                        .requestMatchers(HttpMethod.PATCH, "/api/children/**").hasRole("ADMIN")
+
+                        // Eliminar niños: Solo ADMIN
+                        .requestMatchers(HttpMethod.DELETE, "/api/children/**").hasRole("ADMIN")
 
                         // 2. EVENTOS Y PROYECTOS (Públicos para ver)
                         .requestMatchers(HttpMethod.GET, "/api/events/**").permitAll()

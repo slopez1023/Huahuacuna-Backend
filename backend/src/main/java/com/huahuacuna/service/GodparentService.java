@@ -7,8 +7,13 @@ import java.util.List;
 /**
  * Servicio para gestionar funcionalidades de padrinos.
  *
+ * CORRECCIÓN v2.0:
+ * - Removido el método addLogEntry para padrinos
+ * - El padrino solo puede LEER la bitácora
+ * - Agregados métodos para que el ADMIN gestione la bitácora
+ *
  * @author Fundación Huahuacuna
- * @version 1.0
+ * @version 2.0 - Solo lectura de bitácora para padrinos
  */
 public interface GodparentService {
 
@@ -53,25 +58,47 @@ public interface GodparentService {
      */
     boolean hasActiveSponsorship(Long godparentId);
 
-    // ========== BITÁCORA ==========
+    // ========== BITÁCORA (SOLO LECTURA PARA PADRINO) ==========
 
     /**
      * Obtiene las entradas de bitácora de un apadrinamiento.
+     * El padrino solo puede LEER las entradas, no crearlas.
+     *
      * @param sponsorshipId ID del apadrinamiento
-     * @param godparentId ID del padrino (para validación)
+     * @param godparentId ID del padrino (para validación de pertenencia)
      * @return Lista de entradas de bitácora
      */
     List<LogEntryDTO> getLogEntries(Long sponsorshipId, Long godparentId);
 
     /**
-     * Agrega una entrada a la bitácora.
+     * ❌ REMOVIDO: addLogEntry para padrinos
+     * El padrino NO debe poder agregar entradas a la bitácora.
+     * Esta funcionalidad es EXCLUSIVA del administrador.
+     *
+     * Usar en su lugar: addLogEntryByAdmin()
+     */
+    // LogEntryDTO addLogEntry(Long sponsorshipId, Long godparentId, String title, String content);
+
+    // ========== BITÁCORA (MÉTODOS PARA ADMIN) ==========
+
+    /**
+     * Agrega una entrada a la bitácora (SOLO ADMIN).
+     * Este método no requiere validación de pertenencia del padrino.
+     *
      * @param sponsorshipId ID del apadrinamiento
-     * @param godparentId ID del padrino
      * @param title Título de la entrada
      * @param content Contenido de la entrada
-     * @return Entrada creada
+     * @return LogEntryDTO con la entrada creada
      */
-    LogEntryDTO addLogEntry(Long sponsorshipId, Long godparentId, String title, String content);
+    LogEntryDTO addLogEntryByAdmin(Long sponsorshipId, String title, String content);
+
+    /**
+     * Obtiene las entradas de bitácora para admin (sin validación de usuario).
+     *
+     * @param sponsorshipId ID del apadrinamiento
+     * @return Lista de entradas de bitácora
+     */
+    List<LogEntryDTO> getLogEntriesAdmin(Long sponsorshipId);
 
     // ========== CHAT ==========
 
@@ -105,4 +132,11 @@ public interface GodparentService {
      * @return Número de mensajes no leídos
      */
     long countUnreadMessages(Long godparentId);
+    /**
+     * Obtiene todos los apadrinamientos activos para el panel de admin.
+     * Incluye información del niño, padrino y conteo de entradas de bitácora.
+     *
+     * @return Lista de SponsorshipSummaryDTO
+     */
+    List<SponsorshipSummaryDTO> getAllActiveSponsorshipsForAdmin();
 }

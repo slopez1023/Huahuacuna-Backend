@@ -19,8 +19,12 @@ import java.util.Map;
  * Controlador REST para funcionalidades de padrinos.
  * Base path: /api/padrinos
  *
+ * CORRECCIÓN v2.0: Removido el endpoint de agregar entradas a la bitácora.
+ * El padrino solo puede LEER la bitácora, no modificarla.
+ * La creación de entradas es exclusiva del administrador.
+ *
  * @author Fundación Huahuacuna
- * @version 1.0
+ * @version 2.0 - Solo lectura de bitácora
  */
 @RestController
 @RequestMapping("/api/padrinos")
@@ -106,11 +110,14 @@ public class GodparentController {
         return ResponseEntity.ok(sponsorship);
     }
 
-    // ========== BITÁCORA ==========
+    // ========== BITÁCORA (SOLO LECTURA) ==========
 
     /**
      * Obtiene las entradas de bitácora de un apadrinamiento.
      * GET /api/padrinos/apadrinamientos/{id}/bitacora
+     *
+     * NOTA: El padrino SOLO puede leer la bitácora, NO agregar entradas.
+     * La creación de entradas es exclusiva del administrador.
      */
     @GetMapping("/apadrinamientos/{id}/bitacora")
     @PreAuthorize("hasRole('PADRINO')")
@@ -131,34 +138,18 @@ public class GodparentController {
     }
 
     /**
-     * Agrega una entrada a la bitácora.
-     * POST /api/padrinos/apadrinamientos/{id}/bitacora
+     * ❌ REMOVIDO: Endpoint para agregar entrada a la bitácora
+     *
+     * Este endpoint ha sido ELIMINADO porque el padrino NO debe poder
+     * agregar entradas a la bitácora. Esta funcionalidad es EXCLUSIVA
+     * del administrador y debe implementarse en AdminController.
+     *
+     * El endpoint correspondiente en el admin sería:
+     * POST /api/admin/apadrinamientos/{id}/bitacora
+     *
+     * @see AdminController#addLogEntry
      */
-    @PostMapping("/apadrinamientos/{id}/bitacora")
-    @PreAuthorize("hasRole('PADRINO')")
-    public ResponseEntity<?> addLogEntry(
-            @PathVariable("id") Long sponsorshipId,
-            @RequestBody Map<String, String> body,
-            HttpServletRequest request
-    ) {
-        Long userId = extractUserIdFromToken(request);
-        String titulo = body.get("titulo");
-        String contenido = body.get("contenido");
-
-        log.info("POST /api/padrinos/apadrinamientos/{}/bitacora - Usuario: {}", sponsorshipId, userId);
-
-        if (titulo == null || titulo.isBlank() || contenido == null || contenido.isBlank()) {
-            return ResponseEntity.badRequest().body(createErrorResponse("Título y contenido son obligatorios"));
-        }
-
-        try {
-            LogEntryDTO entry = godparentService.addLogEntry(sponsorshipId, userId, titulo, contenido);
-            return ResponseEntity.ok(entry);
-        } catch (RuntimeException e) {
-            log.error("Error al agregar entrada: {}", e.getMessage());
-            return ResponseEntity.badRequest().body(createErrorResponse(e.getMessage()));
-        }
-    }
+    // @PostMapping("/apadrinamientos/{id}/bitacora") - REMOVIDO
 
     // ========== CHAT ==========
 

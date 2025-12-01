@@ -101,4 +101,5 @@ public interface SponsorshipRepository extends JpaRepository<Sponsorship, Long> 
             @Param("godparentId") Long godparentId,
             @Param("status") SponsorshipStatus status
     );
+
 }

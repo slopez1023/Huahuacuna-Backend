@@ -88,4 +88,5 @@ public interface LogEntryRepository extends JpaRepository<LogEntry, Long> {
             @Param("sponsorshipId") Long sponsorshipId,
             @Param("searchTerm") String searchTerm
     );
+
 }

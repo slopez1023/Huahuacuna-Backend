@@ -3,13 +3,14 @@ package com.huahuacuna.model;
 import jakarta.persistence.*;
 import lombok.Data;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.Period;
 
 /**
  * Entidad que representa a un niño en el sistema.
  *
  * @author Fundación Huahuacuna
- * @version 2.0 - Agregados campos gender y needs
+ * @version 2.1 - Agregados campos de inhabilitación
  */
 @Entity
 @Table(name = "children")
@@ -53,6 +54,7 @@ public class Child {
     /**
      * URL de la foto del niño
      */
+    @Column(columnDefinition = "TEXT")
     private String imageUrl;
 
     /**
@@ -66,4 +68,42 @@ public class Child {
      */
     @Enumerated(EnumType.STRING)
     private ChildStatus status = ChildStatus.AVAILABLE;
+
+    /**
+     * Razón por la cual el niño fue inhabilitado (solo si status es INACTIVE)
+     */
+    @Column(columnDefinition = "TEXT")
+    private String inactivationReason;
+
+    /**
+     * Fecha en que el niño fue inhabilitado
+     */
+    private LocalDateTime inactivatedAt;
+
+    /**
+     * Usuario que inhabilitó al niño (opcional, puede ser el username o ID)
+     */
+    private String inactivatedBy;
+
+    /**
+     * Fecha de creación del registro
+     */
+    @Column(updatable = false)
+    private LocalDateTime createdAt;
+
+    /**
+     * Fecha de última actualización
+     */
+    private LocalDateTime updatedAt;
+
+    @PrePersist
+    protected void onCreate() {
+        createdAt = LocalDateTime.now();
+        updatedAt = LocalDateTime.now();
+    }
+
+    @PreUpdate
+    protected void onUpdate() {
+        updatedAt = LocalDateTime.now();
+    }
 }

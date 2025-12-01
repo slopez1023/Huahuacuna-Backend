@@ -6,6 +6,7 @@ import com.huahuacuna.repository.ChildRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -28,6 +29,10 @@ public class ChildService {
     }
 
     public Child createChild(Child child) {
+        // Asegurar que tenga un estado inicial
+        if (child.getStatus() == null) {
+            child.setStatus(ChildStatus.AVAILABLE);
+        }
         return childRepository.save(child);
     }
 
@@ -36,9 +41,32 @@ public class ChildService {
             child.setFirstName(childDetails.getFirstName());
             child.setLastName(childDetails.getLastName());
             child.setBirthDate(childDetails.getBirthDate());
+            child.setGender(childDetails.getGender());
             child.setStory(childDetails.getStory());
             child.setImageUrl(childDetails.getImageUrl());
+            child.setNeeds(childDetails.getNeeds());
             child.setStatus(childDetails.getStatus());
+
+            return childRepository.save(child);
+        }).orElseThrow(() -> new RuntimeException("Niño no encontrado con id " + id));
+    }
+
+    /**
+     * Inhabilita un niño con una razón específica.
+     * Cambia el estado a INACTIVE y registra la información de inhabilitación.
+     *
+     * @param id El ID del niño a inhabilitar
+     * @param reason La razón de la inhabilitación
+     * @return El niño inhabilitado
+     */
+    public Child inactivateChild(Long id, String reason) {
+        return childRepository.findById(id).map(child -> {
+            child.setStatus(ChildStatus.INACTIVE);
+            child.setInactivationReason(reason);
+            child.setInactivatedAt(LocalDateTime.now());
+            // Si tienes un sistema de autenticación, puedes agregar:
+            // child.setInactivatedBy(SecurityContextHolder.getContext().getAuthentication().getName());
+
             return childRepository.save(child);
         }).orElseThrow(() -> new RuntimeException("Niño no encontrado con id " + id));
     }
@@ -46,5 +74,4 @@ public class ChildService {
     public void deleteChild(Long id) {
         childRepository.deleteById(id);
     }
-
 }

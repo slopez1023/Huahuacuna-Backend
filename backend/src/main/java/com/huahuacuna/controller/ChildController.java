@@ -1,6 +1,7 @@
 package com.huahuacuna.controller;
 
 import com.huahuacuna.model.Child;
+import com.huahuacuna.model.dto.InactivateRequestDTO;
 import com.huahuacuna.service.ChildService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -10,7 +11,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/children")
-@CrossOrigin(origins = "http://localhost:3000") // Permite conexión desde React
+@CrossOrigin(origins = "http://localhost:3000")
 public class ChildController {
 
     @Autowired
@@ -48,6 +49,24 @@ public class ChildController {
         childService.deleteChild(id);
         return ResponseEntity.noContent().build();
     }
+
+    /**
+     * Endpoint para inhabilitar un niño con una razón.
+     * El niño pasa al estado INACTIVE.
+     */
+    @PatchMapping("/{id}/inactivate")
+    public ResponseEntity<Child> inactivateChild(
+            @PathVariable Long id,
+            @RequestBody InactivateRequestDTO request
+    ) {
+        try {
+            Child inactivatedChild = childService.inactivateChild(id, request.getReason());
+            return ResponseEntity.ok(inactivatedChild);
+        } catch (RuntimeException e) {
+            return ResponseEntity.notFound().build();
+        }
+    }
+
     @GetMapping("/available")
     public List<Child> getAvailableChildren() {
         return childService.getAvailableChildren();
